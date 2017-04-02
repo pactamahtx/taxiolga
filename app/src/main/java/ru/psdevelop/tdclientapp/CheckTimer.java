@@ -1,4 +1,4 @@
-package ru.psdevelop.tdclientappgel;
+package ru.psdevelop.tdclientapp;
 
 import android.os.Message;
 
@@ -47,7 +47,7 @@ public class CheckTimer extends Thread {
                     checkStatus();
                 if(counter%3==0)
                     checkConnect();
-                if(this.ownerSrv.inactiveTimeout<150)
+                if(this.ownerSrv.inactiveTimeout<350)
                     this.ownerSrv.inactiveTimeout++;
                 else {
                     if(!this.ownerSrv.inactiveTimeoutBlock) {

@@ -2,9 +2,8 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/TDClientAppGEL.iml" filepath="$PROJECT_DIR$/TDClientAppGEL.iml" />
+      <module fileurl="file://$PROJECT_DIR$/TDClientApp.iml" filepath="$PROJECT_DIR$/TDClientApp.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
-      <module fileurl="file://$PROJECT_DIR$/tdclientappgelGEL.iml" filepath="$PROJECT_DIR$/tdclientappgelGEL.iml" />
     </modules>
   </component>
 </project>

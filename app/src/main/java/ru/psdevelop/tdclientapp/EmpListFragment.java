@@ -1,4 +1,4 @@
-package ru.psdevelop.tdclientappgel;
+package ru.psdevelop.tdclientapp;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
@@ -6,8 +6,10 @@ import java.util.Calendar;
 import java.util.Date;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Message;
 import android.support.v4.app.Fragment;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -19,8 +21,7 @@ import android.widget.AdapterView.OnItemLongClickListener;
 import android.widget.ListView;
 import android.widget.Toast;
 
-public class EmpListFragment extends Fragment
-		//implements OnItemClickListener
+public class EmpListFragment extends Fragment implements OnItemClickListener
 		//OnItemLongClickListener
 {
 
@@ -51,12 +52,12 @@ public class EmpListFragment extends Fragment
 
 		task = new GetEmpTask(activity);
 		task.execute((Void) null);
-		//ArrayList<Employee> empList = employeeDAO.getEmployees();
-		//employeeListAdapter = new EmpListAdapter(activity,
-		//		empList);
-		//employeeListView.setAdapter(employeeListAdapter);
+		ArrayList<Employee> empList = employeeDAO.getEmployees();
+		employeeListAdapter = new EmpListAdapter(activity,
+				empList);
+		employeeListView.setAdapter(employeeListAdapter);
 
-		//employeeListView.setOnItemClickListener(this);
+		employeeListView.setOnItemClickListener(this);
 		//employeeListView.setOnItemLongClickListener(this);
 		// Employee e = employeeDAO.getEmployee(1);
 		// Log.d("employee e", e.toString());
@@ -74,20 +75,42 @@ public class EmpListFragment extends Fragment
 		super.onResume();
 	}
 
-	/*@Override
+	public void sendInfoBroadcast(int action_id, String message) {
+		Intent intent = new Intent(TDClientService.INFO_ACTION);
+		intent.putExtra(ParamsAndConstants.TYPE, action_id);
+		intent.putExtra(ParamsAndConstants.MSG_TEXT, message);
+		activity.sendBroadcast(intent);
+	}
+
+	@Override
 	public void onItemClick(AdapterView<?> list, View arg1, int position,
 			long arg3) {
 		Employee employee = (Employee) list.getItemAtPosition(position);
 
 		if (employee != null) {
-			Bundle arguments = new Bundle();
-			arguments.putParcelable("selectedEmployee", employee);
+			try {
+				Message msg = new Message();
+				msg.arg1 = ParamsAndConstants.ID_ACTION_SET_HISTORY_ADR;
+				Bundle bnd = new Bundle();
+				Toast.makeText(activity, employee.getName(),
+						Toast.LENGTH_LONG).show();
+				bnd.putString("msg_text", employee.getName());
+				msg.setData(bnd);
+				((MainActivity)activity).handle.sendMessage(msg);
+			} catch (Exception ex) {
+				//showMyMsg("Ошибка onItemClick: " + ex);
+				Toast.makeText(activity, "Ошибка onItemClick: " + ex,
+						Toast.LENGTH_LONG).show();
+			}
+			//sendInfoBroadcast(ParamsAndConstants.ID_ACTION_SET_HISTORY_ADR, employee.getName());
+			//Bundle arguments = new Bundle();
+			//arguments.putParcelable("selectedEmployee", employee);
 			//CustomEmpDialogFragment customEmpDialogFragment = new CustomEmpDialogFragment();
 			//customEmpDialogFragment.setArguments(arguments);
 			//customEmpDialogFragment.show(getFragmentManager(),
 			//		CustomEmpDialogFragment.ARG_ITEM_ID);
 		}
-	}*/
+	}
 
 	/*@Override
 	public boolean onItemLongClick(AdapterView<?> parent, View view,
@@ -126,8 +149,8 @@ public class EmpListFragment extends Fragment
 								empList);
 						employeeListView.setAdapter(employeeListAdapter);
 					} else {
-						Toast.makeText(activity, "No Employee Records",
-								Toast.LENGTH_LONG).show();
+						//Toast.makeText(activity, "No Employee Records",
+						//		Toast.LENGTH_LONG).show();
 					}
 				}
 
@@ -141,7 +164,7 @@ public class EmpListFragment extends Fragment
 	 * This is used for communicating between fragments.
 	 */
 	public void updateView() {
-		//task = new GetEmpTask(activity);
-		//task.execute((Void) null);
+		task = new GetEmpTask(activity);
+		task.execute((Void) null);
 	}
 }

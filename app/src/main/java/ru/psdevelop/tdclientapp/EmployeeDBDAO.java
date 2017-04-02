@@ -1,4 +1,4 @@
-package ru.psdevelop.tdclientappgel;
+package ru.psdevelop.tdclientapp;
 
 import android.content.Context;
 import android.database.SQLException;

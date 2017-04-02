@@ -1,13 +1,19 @@
-package ru.psdevelop.tdclientappgel;
+package ru.psdevelop.tdclientapp;
 
 /**
  * Created by Станислав on 27.02.2016.
  */
 public abstract class ParamsAndConstants {
-    public static double defLat=44.5616;
-    public static double defLon=38.077;
-    public static String srvHost="http://taksi.dyndns.org:8081";
-    public static final String REGION_DEFAULT = "Краснодарский край Геленджик ";
+    public static double defLat=44.878208;
+    public static double defLon=37.314103;
+    public static String srvHost="http://00.000.000.000:8081";
+    public static final String REGION_DEFAULT = "Анапский район Анапа ";
+    public static final String PLACES_DEFAULT = "Анапский район ";
+    public static final String PLACE_REPLACE1 = "Анапа,";
+    public static final String PLACE_REPLACE2 = "Анапский район,";
+    public static final String PLACE_REPLACE3 = "Краснодарский край,";
+    public static final String PLACE_REPLACE4 = "Россия";
+    public static String gm_key = "AIzaSyCpmRchEfD51UL5rwH8qbc2kQgT148sA1k";
     public static String mapHtml="<?xml version=\"1.0\" encoding=\"UTF-8\" ?>"+
             "<html><head>"+
             "<meta http-equiv=\"content-type\" content=\"text/html; charset=utf-8\" />" +
@@ -76,6 +82,7 @@ public abstract class ParamsAndConstants {
     public final static int SHOW_GM_ADDRESS = 19;
     public final static int MA_SEND_INFO_BCAST = 20;
     public final static int MA_SET_STAT_TEXTVIEW = 23;
+    public final static int SHOW_STATUS_STRING = 25;
 
     public static final String TYPE = "type";
     public static final String MSG_TEXT = "msg_text";
@@ -87,6 +94,9 @@ public abstract class ParamsAndConstants {
     public static final int ID_ACTION_GO_ORDER_CANCELING = 15;
     public static final int ID_ACTION_WAKE_UP_NEO = 18;
     public static final int ID_ACTION_SET_STATUS_TEXTVIEW = 22;
+    public static final int ID_ACTION_SHOW_STATUS_STRING = 24;
+    public static final int ID_ACTION_SET_HISTORY_ADR = 26;
+    public static final int ID_ACTION_SEND_CCOORDS = 27;
 
     public final static int CHECK_CONNECT = 5;
     public final static int RECEIVE_AUTH = 2;

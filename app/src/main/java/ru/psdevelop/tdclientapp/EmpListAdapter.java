@@ -1,4 +1,4 @@
-package ru.psdevelop.tdclientappgel;
+package ru.psdevelop.tdclientapp;
 
 import java.text.SimpleDateFormat;
 import java.util.List;

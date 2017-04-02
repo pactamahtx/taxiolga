@@ -1,4 +1,4 @@
-package ru.psdevelop.tdclientappgel;
+package ru.psdevelop.tdclientapp;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -8,12 +8,11 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Message;
 import android.preference.PreferenceManager;
 import android.support.design.widget.TabLayout;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 
@@ -24,24 +23,21 @@ import android.support.v4.view.ViewPager;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.InputType;
-import android.text.TextUtils;
 import android.text.TextWatcher;
-import android.util.AttributeSet;
 import android.util.Log;
-import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 
-import android.webkit.JavascriptInterface;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
-import android.webkit.WebViewClient;
+import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.SimpleAdapter;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.content.Intent;
@@ -54,17 +50,22 @@ import org.xmlpull.v1.XmlPullParserFactory;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.StringReader;
+import java.io.UnsupportedEncodingException;
+import java.lang.ref.WeakReference;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
-import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class MainActivity extends AppCompatActivity {
 
-    public static final String INFO_ACTION = "com.psdevelop.tdclientappgel.MA_INFO_ACTION";
+    public static final String INFO_ACTION = "com.psdevelop.tdclientapp.MA_INFO_ACTION";
     public static Handler handle;
     MACheckTimer maCheckTimer=null;
     static SharedPreferences prefs=null;
@@ -85,6 +86,7 @@ public class MainActivity extends AppCompatActivity {
     static boolean coordSearchDetectFromAdr=false;
     static boolean maoRequest=false;
     static String maoSadr="", maoEadr="";
+    static boolean hasOrderRequest = false;
 
     private SectionsPagerAdapter mSectionsPagerAdapter;
 
@@ -166,6 +168,8 @@ public class MainActivity extends AppCompatActivity {
         mViewPager = (ViewPager) findViewById(R.id.container);
         mViewPager.setAdapter(mSectionsPagerAdapter);
 
+        //mSectionsPagerAdapter.
+
         TabLayout tabLayout = (TabLayout) findViewById(R.id.tabs);
         tabLayout.setupWithViewPager(mViewPager);
         tabLayout.setOnTabSelectedListener(new TabLayout.ViewPagerOnTabSelectedListener(mViewPager) {
@@ -174,6 +178,7 @@ public class MainActivity extends AppCompatActivity {
                 super.onTabSelected(tab);
                 //tab.getIcon().setAlpha(255);
                 //showMyMsg(tab.getPosition()+"");
+                sendInfoBroadcast(ParamsAndConstants.ID_ACTION_WAKE_UP_NEO, "---");
                 if (tab.getPosition() == 1)
                     if (hasMeGPSDetecting||hasMeGAdrDetecting)
                         showMeOnMap();
@@ -209,6 +214,14 @@ public class MainActivity extends AppCompatActivity {
                     setTextViewStatus(msg.getData().
                             getString(ParamsAndConstants.MSG_TEXT));
                 }
+                else if (msg.arg1 == ParamsAndConstants.SHOW_STATUS_STRING) {
+                    try {
+                    setTextViewStatus(msg.getData().
+                            getString("msg_text"));
+                    }   catch(Exception e)  {
+                        showMyMsg("SHOW_STATUS_STRING!"+e.getMessage());
+                    }
+                }
                 else if (msg.arg1 == ParamsAndConstants.SHOW_STATUS_INFO) {
                     //showMyMsg(msg.getData().
                     //        getString("msg_text"));
@@ -223,6 +236,18 @@ public class MainActivity extends AppCompatActivity {
                             String ords_dt = "";
 
                             lastOrdersCount = resultJson.getInt("ocn");
+                            if(hasOrderRequest&&lastOrdersCount>0)  {
+                                try {
+                                    hasOrderRequest = false;
+                                    Intent bintent = new Intent(INFO_ACTION);
+                                    bintent.putExtra(ParamsAndConstants.TYPE, ParamsAndConstants.ID_ACTION_SEND_CCOORDS);
+                                    bintent.putExtra("clat", lastLat);
+                                    bintent.putExtra("clon", lastLon);
+                                    sendBroadcast(bintent);
+                                } catch(Exception e)    {
+
+                                }
+                            }
                             for (int i = 0; i < resultJson.getInt("ocn"); i++) {
                                 hasOrders = true;
                                 ords_dt = ords_dt+" "+(i+1)+". "+(resultJson.has("osdt"+i)?resultJson.getString("osdt"+i)+" ":"")+
@@ -342,11 +367,20 @@ public class MainActivity extends AppCompatActivity {
                     hasMAOrdering=true;
                     sendOrderRequest(msg.getData().getString("msg_text"), msg.getData().getString("end_adr"));
                     hasMAOrdering=true;
+                    hasOrderRequest=true;
                     hasMAOrderAdr=msg.getData().getString("msg_text");
                 }   else if(msg.arg1 == ParamsAndConstants.MA_CANCELING)   {
                     sendOrderCancelRequest();
                 }   else if(msg.arg1 == ParamsAndConstants.SHOW_GM_ADDRESS)   {
                     showGMAddress(msg.getData().getString("msg_text"));
+                }
+                else if(msg.arg1 == ParamsAndConstants.ID_ACTION_SET_HISTORY_ADR)   {
+                    try {
+                        mViewPager.setCurrentItem(0);
+                        showGMAddress(msg.getData().getString("msg_text"));
+                    } catch(Exception hex)  {
+                        showMyMsg("ID_ACTION_SET_HISTORY_ADR "+hex);
+                    }
                 }   else if(msg.arg1 == ParamsAndConstants.MA_SEND_INFO_BCAST)   {
                     sendInfoBroadcast(msg.getData().getInt(ParamsAndConstants.TYPE),
                             msg.getData().getString(ParamsAndConstants.MSG_TEXT));
@@ -400,6 +434,19 @@ public class MainActivity extends AppCompatActivity {
                             showMyMsg("Ошибка ID_ACTION_SHOW_STATUS_INFO: " + ex);
                         }
                         break;
+                    case ParamsAndConstants.ID_ACTION_SHOW_STATUS_STRING:
+                        try {
+                            Message msg = new Message();
+                            msg.arg1 = ParamsAndConstants.SHOW_STATUS_STRING;
+                            Bundle bnd = new Bundle();
+                            bnd.putString("msg_text", intent.getStringExtra(ParamsAndConstants.MSG_TEXT));
+                            msg.setData(bnd);
+                            handle.sendMessage(msg);
+
+                        } catch (Exception ex) {
+                            showMyMsg("Ошибка ID_ACTION_SHOW_STATUS_STRING: " + ex);
+                        }
+                        break;
                     case ParamsAndConstants.ID_ACTION_SHOW_COORD_INFO:
                         try {
                             if (activeCoordSearch) {
@@ -409,7 +456,7 @@ public class MainActivity extends AppCompatActivity {
                                 lastLat = intent.getDoubleExtra("lastLat", 0);
                                 lastLon = intent.getDoubleExtra("lastLon", 0);
                                 hasMeGPSDetecting = true;
-                                coordSearchDetectFromAdr=false;
+                                coordSearchDetectFromAdr = false;
                                 bnd.putString("msg_text", intent.getStringExtra(ParamsAndConstants.MSG_TEXT));
                                 msg.setData(bnd);
                                 handle.sendMessage(msg);
@@ -424,6 +471,36 @@ public class MainActivity extends AppCompatActivity {
             }
         }, new IntentFilter(TDClientService.INFO_ACTION));
         maCheckTimer = new MACheckTimer(this);
+    }
+
+    @Override
+    public void onBackPressed()	{
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+
+        builder.setTitle("ВЫХОД ИЗ ПРОГРАММЫ")
+                .setMessage("Закрыть приложение?")
+                        // кнопка "Yes", при нажатии на которую приложение закроется
+                .setPositiveButton("Ок",
+                        new DialogInterface.OnClickListener()
+                        {
+                            public void onClick(DialogInterface dialog, int whichButton)
+                            {
+                                //if(!SOCKET_IN_SERVICE)	{
+                                //    sendInfoBroadcast(TSI_STOP_NSOCK_SERVICE, "---");
+                                //}
+                                //userInterrupt = true;
+                                finish();
+                            }
+                        })
+                .setNegativeButton("Отмена",
+                        new DialogInterface.OnClickListener()
+                        {
+                            public void onClick(DialogInterface dialog, int whichButton)
+                            {
+
+                            }
+                        })
+                .show();
     }
 
     public void showGMAddress(String txt)   {
@@ -663,8 +740,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void sendReverseGeocodeHTTPRequest(String adress)	{
-        final String addres = "https://maps.googleapis.com/maps/api/geocode/xml?key="+
-                "AIzaSyCpmRchEfD51UL5rwH8qbc2kQgT148sA1k&address="+URLEncoder.encode(adress)+"&sensor=false&language=ru";
+        final String addres = "https://maps.googleapis.com/maps/api/geocode/xml?key="+ParamsAndConstants.gm_key+
+                "&address="+URLEncoder.encode(adress)+"&sensor=false&language=ru";
         if(adress.length()>4)
         new Thread(new Runnable() {
 
@@ -796,6 +873,11 @@ public class MainActivity extends AppCompatActivity {
                 if(activeCoordSearch)    {
                     lastLon=lastRevLon;
                     lastLat=lastRevLat;
+                    Intent bintent = new Intent(INFO_ACTION);
+                    bintent.putExtra(ParamsAndConstants.TYPE, ParamsAndConstants.ID_ACTION_SEND_CCOORDS);
+                    bintent.putExtra("clat", lastLat);
+                    bintent.putExtra("clon", lastLon);
+                    sendBroadcast(bintent);
                     hasMeGAdrDetecting=true;
                     activeCoordSearch=false;
                     coordSearchDetectFromAdr=true;
@@ -947,14 +1029,17 @@ public class MainActivity extends AppCompatActivity {
     public static class PlaceholderFragment extends Fragment {
         private static final String ARG_SECTION_NUMBER = "section_number";
         public View fragmentViev;
-        Button orderButton, cancelButton, gpsDetectButton;
-        EditText editTextFromAdres, editTextToAdres;
+        Button orderButton, cancelButton, gpsDetectButton, clearBtn;
+        AutoCompleteTextView editTextFromAdres;
+        EditText editTextToAdres;
 
         public static final String ARG_ITEM_ID = "employee_list";
 
         Activity activity;
         ListView employeeListView;
         ArrayList<Employee> employees;
+        PlacesTask placesTask;
+        GetEmpTask eTask;
 
         //EmpListAdapter employeeListAdapter;
         EmployeeDAO employeeDAO;
@@ -963,8 +1048,8 @@ public class MainActivity extends AppCompatActivity {
         //TextView
 
         public PlaceholderFragment() {
-            //activity = getActivity();
-            //employeeDAO = new EmployeeDAO(activity);
+            activity = getActivity();
+            employeeDAO = new EmployeeDAO(activity);
         }
 
         public void sendInfoBroadcast(int action_id, String message) {
@@ -1000,19 +1085,11 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @Override
-        public void onStart() {
-            super.onStart();
-            Toast toastErrorStartActivitySMS2 = Toast.
-                    makeText(getActivity(),
-                            "onStart:" + getArguments().getInt(ARG_SECTION_NUMBER), Toast.LENGTH_LONG);
-            //toastErrorStartActivitySMS2.show();
-        }
-
-        @Override
         public View onCreateView(LayoutInflater inflater, ViewGroup container,
                                  Bundle savedInstanceState) {
             View rootView=null;
             orderButton=null;
+
 
             if(getArguments().getInt(ARG_SECTION_NUMBER)==1)    {
                 rootView = inflater.inflate(R.layout.fragment_main, container, false);
@@ -1020,8 +1097,9 @@ public class MainActivity extends AppCompatActivity {
                 orderButton = (Button)rootView.findViewById(R.id.orderButton);
                 gpsDetectButton = (Button)rootView.findViewById(R.id.gpsDetectButton);
                 cancelButton = (Button)rootView.findViewById(R.id.cancelButton);
-                editTextFromAdres = (EditText)rootView.findViewById(R.id.editTextFromAdr);
+                editTextFromAdres = (AutoCompleteTextView)rootView.findViewById(R.id.editTextFromAdr);
                 editTextToAdres = (EditText)rootView.findViewById(R.id.editTextToAdr);
+                clearBtn = (Button)rootView.findViewById(R.id.btn_clear);
                 editTextFromAdres.addTextChangedListener(new TextWatcher() {
                     @Override
                     public void onTextChanged(CharSequence s, int start, int before, int count) {
@@ -1032,6 +1110,12 @@ public class MainActivity extends AppCompatActivity {
                     public void beforeTextChanged(CharSequence s, int start, int count,
                                                   int after) {
                         // TODO Auto-generated method stub
+                        if(s.toString().length()>2&&s.toString().length()<15) {
+                            //placesTask = new PlacesTask();
+                            //placesTask.execute(ParamsAndConstants.PLACES_DEFAULT + s.toString());
+                            eTask = new GetEmpTask(getActivity());
+                            eTask.execute(s.toString());
+                        }
                     }
 
                     @Override
@@ -1039,10 +1123,13 @@ public class MainActivity extends AppCompatActivity {
                         // TODO Auto-generated method stub
                         lastAdr = editTextFromAdres.getText().toString();
                         hasMeGAdrDetecting=false;
-                        //Toast toastErrorStartActivitySMS2 = Toast.
-                        //        makeText(getActivity(),
-                        //                lastAdr, Toast.LENGTH_LONG);
-                        //toastErrorStartActivitySMS2.show();
+                    }
+                });
+                clearBtn.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        sendInfoBroadcast(ParamsAndConstants.ID_ACTION_WAKE_UP_NEO,"---");
+                        editTextFromAdres.setText("");
                     }
                 });
                 orderButton.setOnClickListener(new View.OnClickListener() {
@@ -1113,7 +1200,241 @@ public class MainActivity extends AppCompatActivity {
             fragmentViev = rootView;
             return rootView;
         }
+
+        /** A method to download json data from url */
+        private String downloadUrl(String strUrl) throws IOException{
+            String data = "";
+            InputStream iStream = null;
+            HttpURLConnection urlConnection = null;
+            try{
+                URL url = new URL(strUrl);
+
+                // Creating an http connection to communicate with url
+                urlConnection = (HttpURLConnection) url.openConnection();
+
+                // Connecting to url
+                urlConnection.connect();
+
+                // Reading data from url
+                iStream = urlConnection.getInputStream();
+
+                BufferedReader br = new BufferedReader(new InputStreamReader(iStream));
+
+                StringBuilder sb = new StringBuilder();
+
+                String line = "";
+                while( ( line = br.readLine()) != null){
+                    sb.append(line);
+                }
+
+                data = sb.toString();
+
+                br.close();
+
+            }catch(Exception e){
+                Log.d("Exception while downloading url", e.toString());
+                //Toast toastErr = Toast.makeText(getActivity(),
+                //        "Exception while downloading url "+e.toString(), Toast.LENGTH_LONG);
+                //toastErr.show();
+            }finally{
+                iStream.close();
+                urlConnection.disconnect();
+            }
+            return data;
+        }
+
+        public class GetEmpTask extends AsyncTask<String, Void, ArrayList<Employee>> {
+
+            private final WeakReference<Activity> activityWeakRef;
+            private String fplace;
+
+            public GetEmpTask(Activity context) {
+                this.activityWeakRef = new WeakReference<Activity>(context);
+            }
+
+            @Override
+            protected ArrayList<Employee> doInBackground(String... place) {
+                fplace=place[0];
+                ArrayList<Employee> employeeList = employeeDAO.getEmployees();
+                //Log.d("employees", employeeList.toString());
+                return employeeList;
+            }
+
+            @Override
+            protected void onPostExecute(ArrayList<Employee> empList) {
+                Log.d("employees", empList.toString());
+                if (activityWeakRef.get() != null
+                        && !activityWeakRef.get().isFinishing()) {
+                    Log.d("employees", empList.toString());
+                    employees = empList;
+                    if (empList != null) {
+                        if (empList.size() != 0) {
+                            //employeeListAdapter = new EmpListAdapter(activity,
+                            //         empList);
+                            //employeeListView.setAdapter(employeeListAdapter);
+                            List<HashMap<String, String>> result = new ArrayList();
+
+                            String[] from =  { "description" };//new String[]
+                            int[] to = new int[] { android.R.id.text1 };
+                            for(int i=0;i<empList.size();i++)   {
+                                if(empList.get(i).getName().indexOf(fplace,0)!=-1)
+                                {
+                                    boolean hasInRes=false;
+                                    for(int k=0;k<result.size();k++) {
+                                        if(result.get(k).get("description").equals(empList.get(i).getName()))
+                                        {
+                                            hasInRes=true;
+                                            break;
+                                        }
+                                    }
+                                    if(!hasInRes) {
+                                        HashMap<String, String> hm = new HashMap<String, String>();
+                                        hm.put("description", empList.get(i).getName());
+                                        result.add(hm);
+                                    }
+                                }
+                            }
+                                //Log.d("result ", empList.get(i).getName());
+                            // Creating a SimpleAdapter for the AutoCompleteTextView
+                            if(result.size()>0) {
+                                SimpleAdapter adapter = new SimpleAdapter(getActivity(), result, android.R.layout.simple_list_item_1, from, to);
+
+                                // Setting the adapter
+                                editTextFromAdres.setAdapter(adapter);
+                                editTextFromAdres.showDropDown();
+                            }
+                        } else {
+                            //Toast.makeText(activity, "No Employee Records",
+                            //		Toast.LENGTH_LONG).show();
+                        }
+                    }
+
+                }
+            }
+        }
+
+        // Fetches all places from GooglePlaces AutoComplete Web Service
+        private class PlacesTask extends AsyncTask<String, Void, String>{
+            ParserTask parserTask;
+
+            @Override
+            protected String doInBackground(String... place) {
+                // For storing data from web service
+                String data = "";
+
+                // Obtain browser key from https://code.google.com/apis/console
+                String key = "key="+ParamsAndConstants.gm_key;
+
+                String input="";
+
+                try {
+                    input = "input=" + URLEncoder.encode(place[0], "utf-8");
+                } catch (UnsupportedEncodingException e1) {
+                    e1.printStackTrace();
+                }
+
+                // place type to be searched
+                String types = "types=geocode";
+
+                // Sensor enabled
+                String sensor = "sensor=false";
+
+                // Building the parameters to the web service
+                String parameters = input+"&"+types+"&"+sensor+"&"+key;
+
+                // Output format
+                String output = "json";
+
+                // Building the url to the web service
+                String url = "https://maps.googleapis.com/maps/api/place/autocomplete/"+output+"?"+parameters;
+
+                try{
+                    // Fetching the data from we service
+                    data = downloadUrl(url);
+                    //Toast toastErr = Toast.makeText(getActivity(),
+                    //        "Background Task PlacesTask complete  "+data, Toast.LENGTH_LONG);
+                    //toastErr.show();
+                    //Log.d("================",data);
+                    //System.out.print("===================");
+                }catch(Exception e){
+                    Log.d("Background Task",e.toString());
+                    //Toast toastErr = Toast.makeText(getActivity(),
+                    //        "Background Task PlacesTask "+e.toString(), Toast.LENGTH_LONG);
+                    //toastErr.show();
+                }
+                return data;
+            }
+
+            @Override
+            protected void onPostExecute(String result) {
+                super.onPostExecute(result);
+
+                // Creating ParserTask
+                parserTask = new ParserTask();
+
+                // Starting Parsing the JSON string returned by Web Service
+                parserTask.execute(result);
+            }
+        }
+        /** A class to parse the Google Places in JSON format */
+        private class ParserTask extends AsyncTask<String, Integer, List<HashMap<String,String>>> {
+
+            JSONObject jObject;
+
+            @Override
+            protected List<HashMap<String, String>> doInBackground(String... jsonData) {
+
+                List<HashMap<String, String>> places = null;
+
+                PlaceJSONParser placeJsonParser = new PlaceJSONParser();
+
+                try{
+                    jObject = new JSONObject(jsonData[0]);
+
+                    // Getting the parsed data as a List construct
+                    places = placeJsonParser.parse(jObject);
+
+                }catch(Exception e){
+                    Log.d("Exception", e.toString());
+                    //Toast toastErr = Toast.makeText(getActivity(),
+                    //        "Background Task ParserTask "+e.toString(), Toast.LENGTH_LONG);
+                    //toastErr.show();
+                }
+                return places;
+            }
+
+            @Override
+            protected void onPostExecute(List<HashMap<String, String>> result) {
+
+                String[] from =  { "description" };//new String[]
+                int[] to = new int[] { android.R.id.text1 };
+                for(int i=0;i<result.size();i++)
+                    Log.d("result ", result.get(i).get("description").toString());
+                // Creating a SimpleAdapter for the AutoCompleteTextView
+                SimpleAdapter adapter = new SimpleAdapter(getActivity(), result, android.R.layout.simple_list_item_1, from, to);
+
+                // Setting the adapter
+                editTextFromAdres.setAdapter(adapter);
+                editTextFromAdres.showDropDown();
+            }
+        }
     }
+
+    /*private class AutoCompleteAdapter extends SimpleAdapter {
+
+        public AutoCompleteAdapter(Context context, List<Map<String, Object>> layout, int c, String[] from, int[] to) {
+            super(context, layout, c, from, to);
+
+
+            //this.
+            setToStringConverter(new CursorToStringConverter() {
+                @Override
+                public CharSequence convertToString(Cursor item) {
+                    return item.getString(item.getColumnIndex(DESIRED_COLUMN_NAME));
+                }
+            });
+        }
+    }*/
 
     public class SectionsPagerAdapter extends FragmentPagerAdapter {
 

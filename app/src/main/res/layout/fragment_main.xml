@@ -6,7 +6,7 @@
     android:paddingLeft="@dimen/activity_horizontal_margin"
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
-    tools:context="ru.psdevelop.tdclientappgel.MainActivity$PlaceholderFragment">
+    tools:context="ru.psdevelop.tdclientapp.MainActivity$PlaceholderFragment">
 
     <TextView
         android:id="@+id/section_label"
@@ -20,7 +20,7 @@
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="  ВЫЗВАТЬ ТАКСИ  "
+        android:text="ВЫЗВАТЬ"
         android:id="@+id/orderButton"
         android:background="#02c854"
         android:padding="5dp"
@@ -29,34 +29,23 @@
         android:layout_below="@+id/editTextToAdr"
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"
-        android:layout_margin="0dp"
-        android:minWidth="150dp" />
-
-    <EditText
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:id="@+id/editTextFromAdr"
-        android:minWidth="250dp"
-        android:layout_below="@+id/section_label"
-        android:layout_alignParentLeft="true"
-        android:layout_alignParentStart="true"
-        android:layout_alignRight="@+id/imageView"
-        android:layout_alignEnd="@+id/imageView"
-        android:textSize="14dp"
-        android:textIsSelectable="false" />
+        android:minWidth="150dp"
+        android:layout_marginLeft="0dp"
+        android:layout_marginTop="0dp"
+        android:layout_marginBottom="0dp" />
 
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="ОПРЕДЕЛИТЬ МЕСТОПОЛОЖЕНИЕ"
         android:id="@+id/gpsDetectButton"
-        android:layout_below="@+id/editTextFromAdr"
-        android:layout_alignRight="@+id/editTextFromAdr"
-        android:layout_alignEnd="@+id/editTextFromAdr"
+        android:background="#4052b5"
+        android:textColor="#ffffff"
+        android:layout_below="@+id/frameLayout"
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"
-        android:background="#4052b5"
-        android:textColor="#ffffff" />
+        android:layout_alignRight="@+id/frameLayout"
+        android:layout_alignEnd="@+id/frameLayout" />
 
     <TextView
         android:layout_width="wrap_content"
@@ -83,16 +72,17 @@
         android:layout_height="wrap_content"
         android:id="@+id/imageView"
         android:layout_alignParentTop="true"
-        android:layout_alignParentLeft="true"
-        android:layout_alignParentStart="true"
         android:src="@drawable/taxi_logo"
         android:layout_alignParentRight="true"
-        android:layout_alignParentEnd="true" />
+        android:layout_alignParentEnd="true"
+        android:layout_toEndOf="@+id/orderButton"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true" />
 
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="  ОТМЕНА  "
+        android:text="ОТМЕНА"
         android:id="@+id/cancelButton"
         android:background="#ff1945"
         android:padding="5dp"
@@ -117,5 +107,48 @@
         android:layout_alignRight="@+id/cancelButton"
         android:layout_alignEnd="@+id/cancelButton"
         android:textSize="13dp" />
+
+
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="0dp"
+        android:layout_below="@+id/section_label"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:layout_alignRight="@+id/imageView"
+        android:layout_alignEnd="@+id/imageView"
+        android:id="@+id/frameLayout">
+
+        <!--<EditText
+            android:id="@+id/text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="text"
+            android:textColor="#ff0000"
+            android:singleLine="true" />
+            android:layout_alignParentLeft="true"
+            android:layout_alignParentStart="true"
+            android:layout_alignRight="@+id/imageView"
+            android:layout_alignEnd="@+id/imageView"
+            -->
+        <ru.psdevelop.tdclientapp.CustomAutoCompleteTextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/editTextFromAdr"
+            android:layout_below="@+id/section_label"
+             />
+
+        <Button
+            android:id="@+id/btn_clear"
+            android:layout_width="25dp"
+            android:layout_height="25dp"
+            android:layout_gravity="end|center_vertical"
+            android:layout_marginEnd="10dp"
+            android:layout_marginRight="10dp"
+            android:background="@android:drawable/ic_delete"
+             />
+    </FrameLayout>
 
 </RelativeLayout>

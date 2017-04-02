@@ -1,4 +1,4 @@
-package ru.psdevelop.tdclientappgel;
+package ru.psdevelop.tdclientapp;
 
 import android.app.Activity;
 import android.app.NotificationManager;
@@ -38,6 +38,7 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.text.DecimalFormat;
 
 import io.socket.client.IO;
 import android.app.AlertDialog;
@@ -58,7 +59,7 @@ public class TDClientService extends Service implements LocationListener {
     static int inactiveTimeout=0;
     boolean singleGPSDetect=false;
 
-    public static final String INFO_ACTION = "com.psdevelop.tdclientappgel.INFO_ACTION";
+    public static final String INFO_ACTION = "com.psdevelop.tdclientapp.INFO_ACTION";
 
     public static Handler handle;
     CheckTimer checkTimer=null;
@@ -132,6 +133,25 @@ public class TDClientService extends Service implements LocationListener {
         }
     }
 
+    public void sendCCoords(String clat, String clon)   {
+        try {
+            if (auth) {
+                showToast("...");
+
+                //clId = clientId;//strToIntDef(prefs.getString("example_list", "-1"), -1);
+                phone = prefs.getString("example_text", "-1");
+                JSONObject resultJson = new JSONObject();
+                resultJson.put("id", clientId);
+                resultJson.put("phone", phone);
+                resultJson.put("clat", clat);
+                resultJson.put("clon", clon);
+                mSocket.emit("ccoords", resultJson.toString());
+            }
+        } catch (Exception ex) {
+            showToast("Ошибка отправки запроса: " + ex.getMessage());
+        }
+    }
+
     @Override
     public void onCreate() {
 
@@ -184,7 +204,7 @@ public class TDClientService extends Service implements LocationListener {
                         mSocket.disconnect();
                         mSocket = null;
                         sendInfoBroadcast(ParamsAndConstants.ID_ACTION_SET_STATUS_TEXTVIEW,
-                                "ОТКЛЮЧЕН, НАЖМИТЕ НА ЛЮБУЮ КНОПКУ ДЛЯ ПОДКЛЮЧЕНИЯ!");
+                                "Отключен от сервера, нажмите на любую кнопку для поключения!");
                         //showToast("Отключаюсь от сервера!");
                     } catch(Exception e)    {
                         showToast("Ошибка отключения из-за бездействия! "+e.getMessage());
@@ -251,6 +271,11 @@ public class TDClientService extends Service implements LocationListener {
                         inactiveTimeoutBlock=false;
                         inactiveTimeout=0;
                         break;
+                    case ParamsAndConstants.ID_ACTION_SEND_CCOORDS:
+                        DecimalFormat df = new DecimalFormat("#.######");
+                        sendCCoords(df.format(intent.getDoubleExtra("clat", 0)).replace(",", "."),
+                                df.format(intent.getDoubleExtra("clon", 0)).replace(",", "."));
+                        break;
                     case ParamsAndConstants.ID_ACTION_GO_ORDERING:
                         try {
                             if (auth) {
@@ -272,7 +297,7 @@ public class TDClientService extends Service implements LocationListener {
                     case ParamsAndConstants.ID_ACTION_GO_ORDER_CANCELING:
                         try {
                             if (auth) {
-                                showToast("Отсылаю заказ...");
+                                showToast("Отсылаю запрос отмены...");
                                 //clId = clientId;//strToIntDef(prefs.getString("example_list", "-1"), -1);
                                 phone = prefs.getString("example_text", "-1");
                                 JSONObject resultJson = new JSONObject();
@@ -312,6 +337,9 @@ public class TDClientService extends Service implements LocationListener {
         intent.putExtra("lastLat", location.getLatitude());
         intent.putExtra("lastLon", location.getLongitude());
         sendBroadcast(intent);
+        DecimalFormat df = new DecimalFormat("#.######");
+        sendCCoords(df.format(location.getLatitude()).replace(",", "."),
+                df.format(location.getLongitude()).replace(",", "."));
         if(singleGPSDetect) {
             removeLUpd(true);
             singleGPSDetect=false;
@@ -400,8 +428,15 @@ public class TDClientService extends Service implements LocationListener {
         }
     }
 
+    public String lastStatusData = "";
+
     public void parseStatus(String data)    {
+        lastStatusData = data;
         sendInfoBroadcast( ParamsAndConstants.ID_ACTION_SHOW_STATUS_INFO, data);
+    }
+
+    public void setStatusString(String status)  {
+        sendInfoBroadcast( ParamsAndConstants.ID_ACTION_SHOW_STATUS_STRING, status);
     }
 
     public void connectCheck()   {
@@ -410,6 +445,8 @@ public class TDClientService extends Service implements LocationListener {
                 connectAttempt=true;
                 try {
                     if (mSocket == null) {// ? true : !mSocket.connected()) {
+                        setStatusString("Подключение...");
+                        lastStatusData="";
                         auth = false;
                         mSocket = IO.socket(ParamsAndConstants.srvHost);
                         if (mSocket != null) {
@@ -422,7 +459,8 @@ public class TDClientService extends Service implements LocationListener {
                     }
                     if (mSocket != null) {// ? mSocket.connected() : false) {
                         if (!auth) {
-                            //showToast("Найдено соедениние... подключаюсь...");
+                            lastStatusData="";
+                            setStatusString("Найдено соедениние... идентификация...");
                             clientId = strToIntDef(prefs.getString("example_list", "-1"), -1);
                             phone = prefs.getString("example_text", "-1");
                             JSONObject resultJson = new JSONObject();
@@ -430,7 +468,12 @@ public class TDClientService extends Service implements LocationListener {
                             resultJson.put("phone", phone);
                             mSocket.emit("ident", resultJson.toString());
                         }
+                        else {
+                            if (lastStatusData.length() > 0)
+                                parseStatus(lastStatusData);
+                        }
                     } else {
+                        lastStatusData="";
                         if (mSocket != null) {
                             try {
                                 mSocket.disconnect();
@@ -441,7 +484,7 @@ public class TDClientService extends Service implements LocationListener {
                             }
                         }
                         mSocket = null;
-                        //showToast("Ожидание соединения...");
+                        setStatusString("Ожидание соединения...");
                     }
                     //mSocket.emit("ident", "me");
 
@@ -457,11 +500,14 @@ public class TDClientService extends Service implements LocationListener {
                         }
                     }
                     mSocket = null;
-                    //showToast("Соединение неудачно! Пробуем снова..." + e.getMessage());
+                    setStatusString("Соединение неудачно! Пробуем снова..." + e.getMessage());
                 }
             } finally {
                 connectAttempt = false;
             }
+        }   else    {
+            if(inactiveTimeoutBlock)
+                setStatusString("Отключен от сервера, нажмите на любую кнопку для поключения!");
         }
     }
 
