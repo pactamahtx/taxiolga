@@ -66,6 +66,7 @@ public class TDClientService extends Service implements LocationListener {
     private LocationManager myManager;
 
     public static boolean ENABLE_SMS_NOTIFICATIONS=false;
+	public static final int TDC_PERMISSIONS_REQUEST_READ_CONTACTS = 200;
 
     static SharedPreferences prefs=null;
     //PowerManager.WakeLock wakeLock;
